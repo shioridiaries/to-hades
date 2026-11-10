@@ -70,4 +70,82 @@ document.getElementById('timerReset').addEventListener('click',()=>switchTimer(t
 document.getElementById('focusModeBtn').addEventListener('click',()=>switchTimer('focus'));
 document.getElementById('breakModeBtn').addEventListener('click',()=>switchTimer('break'));
 renderTimer();
-</script></body></html>
+</script>
+<!-- Persephone's Little Hearts Arcade: self-contained addition -->
+<style>
+#heartArcadeLaunch{position:fixed;right:16px;bottom:18px;z-index:9998;border:1px solid #e6c879;border-radius:30px;background:#251d43;color:#ffe6a5;padding:12px 17px;font:600 14px system-ui,sans-serif;box-shadow:0 5px 22px #0008;cursor:pointer}
+#heartArcadeOverlay{display:none;position:fixed;inset:0;z-index:9999;background:#080d20ed;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:system-ui,sans-serif}
+#heartArcadeOverlay.ha-visible{display:flex}
+#heartArcadePanel{width:min(100%,500px);max-height:95vh;overflow:auto;box-sizing:border-box;border:1px solid #a78ac5;border-radius:20px;padding:18px;background:linear-gradient(145deg,#1b2143,#241a40);color:#f8eaff;text-align:center;box-shadow:0 15px 60px #0009}
+#heartArcadePanel button{cursor:pointer}
+#heartArcadeClose{float:right;border:0;background:transparent;color:#fff;font-size:26px;padding:0 6px}
+#heartArcadePanel h2{font-size:21px;margin:8px 0;color:#ffe4a3}
+#heartArcadePanel p{font-size:13px;line-height:1.5;color:#ded0f1}
+#heartArcadeStats{display:flex;justify-content:center;gap:22px;margin:12px 0;color:#ffdfa2;font-weight:700}
+#heartArcadeField{position:relative;height:290px;overflow:hidden;border:1px solid #5c517d;border-radius:14px;background:radial-gradient(circle at 20% 30%,#3a315d 0,#171e3b 65%,#10162d 100%);touch-action:manipulation}
+#heartArcadeField:before{content:'✦     ·        ✧         ·      ✦     ·       ✧';position:absolute;inset:18px 0 auto;color:#e8d19c88;letter-spacing:13px;font-size:12px;pointer-events:none}
+.ha-heart{position:absolute;display:grid;place-items:center;width:55px;height:55px;border:0;border-radius:50%;background:#ffffff12;font-size:33px;touch-action:manipulation;animation:ha-pop .22s ease-out;user-select:none}
+.ha-heart:focus-visible{outline:2px solid #ffe6a5}
+@keyframes ha-pop{from{transform:scale(.4);opacity:.4}to{transform:scale(1);opacity:1}}
+#heartArcadeNote{min-height:52px;margin:13px 0 6px;padding:10px;border-radius:12px;background:#49385a;color:#ffe8a9;font-size:14px;line-height:1.5}
+#heartArcadeReset{border:1px solid #d6b778;border-radius:20px;background:#3c3154;color:#fff1c6;padding:9px 20px;margin-top:7px}
+</style>
+<button id="heartArcadeLaunch" type="button">💜 Catch Little Hearts 🎮</button>
+<div id="heartArcadeOverlay" role="dialog" aria-modal="true" aria-label="Catch My Little Hearts, Hades">
+  <div id="heartArcadePanel">
+    <button id="heartArcadeClose" aria-label="Close game" type="button">×</button>
+    <div style="font-size:12px;letter-spacing:2px;color:#d9c1f2">A LITTLE GAME FROM PERSEPHONE</div>
+    <h2>Catch My Little Hearts, Hades 💛</h2>
+    <p>Tap the moving hearts. No timer, no pressure! Every five hearts unlocks a little note.</p>
+    <div id="heartArcadeStats"><span>💜 Hearts: <span id="haScore">0</span></span><span>🏆 Best: <span id="haBest">0</span></span></div>
+    <div id="heartArcadeField" aria-label="Tap the moving hearts"></div>
+    <div id="heartArcadeNote" aria-live="polite">Hey, Hades! Ready to catch some love and encouragement? 💜</div>
+    <button id="heartArcadeReset" type="button">↻ Play again</button>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  const launch=document.getElementById('heartArcadeLaunch'),overlay=document.getElementById('heartArcadeOverlay'),field=document.getElementById('heartArcadeField');
+  const scoreEl=document.getElementById('haScore'),bestEl=document.getElementById('haBest'),note=document.getElementById('heartArcadeNote');
+  const notes=[
+    'Five hearts! Just a reminder that I am always rooting for you, Hades. 💛',
+    'Ten hearts! HAHAHA. You are doing great, even when the day feels heavy. 💜',
+    'Please drink water and rest your eyes sometimes, future doctor! 💛',
+    'You are more than your grades, your achievements, or your hardest days. 💜',
+    'Small steps still count. Persephone is proud of youuu! ✨',
+    'You make ordinary conversations feel a little more special. 💛',
+    'Even on quiet days, someone is cheering for you. 💜',
+    'You deserve good things and gentle days, Hades. 💛'
+  ];
+  let score=0,best=0,interval=null,heart=null;
+  try{best=Number(localStorage.getItem('hadesHeartArcadeBest'))||0}catch(e){}
+  bestEl.textContent=best;
+  function moveHeart(){
+    if(!heart)return;
+    const maxX=Math.max(0,field.clientWidth-60),maxY=Math.max(0,field.clientHeight-60);
+    heart.style.left=Math.floor(Math.random()*maxX)+'px';heart.style.top=Math.floor(Math.random()*maxY)+'px';
+  }
+  function catchHeart(){
+    score++;scoreEl.textContent=score;
+    if(score>best){best=score;bestEl.textContent=best;try{localStorage.setItem('hadesHeartArcadeBest',String(best))}catch(e){}}
+    if(score%5===0)note.textContent='💌 MESSAGE UNLOCKED: '+notes[(score/5-1)%notes.length];
+    moveHeart();
+  }
+  function start(){
+    clearInterval(interval);field.innerHTML='';score=0;scoreEl.textContent='0';
+    note.textContent='Catch five hearts to unlock your first note! 💛';
+    heart=document.createElement('button');heart.type='button';heart.className='ha-heart';heart.textContent='💜';heart.setAttribute('aria-label','Catch heart');
+    heart.addEventListener('click',function(){heart.textContent=score%2===0?'💛':'💜';catchHeart()});field.appendChild(heart);moveHeart();
+    interval=setInterval(function(){if(overlay.classList.contains('ha-visible'))moveHeart()},1250);
+  }
+  function close(){overlay.classList.remove('ha-visible');clearInterval(interval);interval=null}
+  launch.addEventListener('click',function(){overlay.classList.add('ha-visible');start()});
+  document.getElementById('heartArcadeClose').addEventListener('click',close);
+  document.getElementById('heartArcadeReset').addEventListener('click',start);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+})();
+</script>
+
+</body></html>
